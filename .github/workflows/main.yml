@@ -51,9 +51,25 @@ jobs:
         run: |
           conda activate mlflow-project-env # Aktifkan environment
           echo "MLFLOW_TRACKING_USERNAME=${{ secrets.DAGSHUB_USERNAME }}" >> $GITHUB_ENV
-          echo "MLFLOW_TRACKING_PASSWORD=${{ secrets.DAGSHUB_TOKEN }}" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_PASSWORD=${{ secrets.DAGSHUB_TOKEN }}" >> $GITHUB_ENV # TOKEN TIDAK AKAN TAMPIL DI LOG UNTUK KEAMANAN
           echo "MLFLOW_TRACKING_URI=https://dagshub.com/antony-ch/Eksperimen_SML_AntonyCH.mlflow" >> $GITHUB_ENV
           echo "DagsHub environment variables set for subsequent steps."
+
+      # --- DEBUGGING STEP: VERIFIKASI ENVIRONMENT VARIABLES SEBELUM MLFLOW RUN ---
+      - name: Debug - Verify DagsHub Environment Variables
+        shell: bash -l {0}
+        run: |
+          conda activate mlflow-project-env
+          echo "Verifying MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}"
+          echo "Verifying MLFLOW_TRACKING_USERNAME: ${MLFLOW_TRACKING_USERNAME}"
+          echo "MLFLOW_TRACKING_PASSWORD variable is set (value will not be printed for security)."
+          if [ -z "${MLFLOW_TRACKING_USERNAME}" ] || [ -z "${MLFLOW_TRACKING_PASSWORD}" ] || [ -z "${MLFLOW_TRACKING_URI}" ]; then
+              echo "!!! PERINGATAN: Salah satu atau lebih variabel lingkungan DagsHub MLflow tidak disetel. !!!"
+              exit 1 # Gagal jika ada yang kosong
+          else
+              echo "Semua variabel lingkungan DagsHub MLflow tampaknya sudah disetel."
+          fi
+      # --- AKHIR DEBUGGING STEP ---
 
       - name: Run MLflow Project
         shell: bash -l {0} # Gunakan login shell
@@ -63,9 +79,9 @@ jobs:
           mlflow run MLProject
           # Jika modelling.py menerima parameter (misalnya dari MLProject Anda):
           # mlflow run MLProject -P alpha=0.5 -P l1_ratio=0.5
-        # Bagian 'env:' di bawah ini menjadi opsional karena sudah diatur via $GITHUB_ENV di langkah sebelumnya,
-        # tapi tidak ada salahnya juga untuk tetap ada sebagai redundansi langsung untuk perintah mlflow run.
         env:
+          # Bagian 'env:' di sini adalah redundansi yang baik jika $GITHUB_ENV tidak sepenuhnya dihormati
+          # oleh sub-proses mlflow run, atau jika ada variabel lain yang spesifik untuk langkah ini.
           MLFLOW_TRACKING_URI: https://dagshub.com/antony-ch/Eksperimen_SML_AntonyCH.mlflow
           MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
