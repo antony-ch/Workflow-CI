@@ -18,20 +18,14 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: 3.12.7 # Pastikan ini sama dengan di conda.yaml Anda
+          python-version: 3.12.7 # MOHON SESUAIKAN: Pastikan ini sama dengan versi Python di MLProject/conda.yaml Anda (sebelumnya saya lihat Anda tulis 3.12.7, tapi di conda.yaml kita pakai 3.9)
           activate-environment: mlflow-project-env # Nama env dari conda.yaml
           auto-activate-base: false # Hindari aktivasi base env
-          auto-update-conda: true # Tambahkan ini: Pastikan conda up-to-date dan terinisialisasi
+          auto-update-conda: true # Pastikan conda up-to-date dan terinisialisasi
+          conda-create-envs-file: MLProject/conda.yaml # <-- BARIS PENTING: Akan membuat/mengupdate env dari conda.yaml
 
-      - name: Install dependencies
-        # Penting: Gunakan 'shell: bash -l {0}' untuk memastikan login shell,
-        # yang akan menginisialisasi conda dengan benar.
-        shell: bash -l {0}
-        run: |
-          conda activate mlflow-project-env # Aktifkan environment Conda
-          pip install -r MLProject/requirements.txt # Menginstal dependencies dari requirements.txt
-          # Jika semua sudah di conda.yaml dan tidak ada requirements.txt terpisah di MLProject:
-          # conda env update --file MLProject/conda.yaml
+      # Langkah 'Install dependencies' sebelumnya yang bermasalah telah dihapus.
+      # Semua dependensi sekarang dihandle oleh 'conda-create-envs-file' di atas.
 
       - name: Configure DagsHub credentials
         shell: bash -l {0} # Gunakan login shell
@@ -51,7 +45,7 @@ jobs:
         run: |
           conda activate mlflow-project-env # Aktifkan environment lagi untuk step ini
           # Pastikan Anda menggunakan perintah yang benar sesuai MLProject Anda.
-          # Jika modelling.py tidak menerima parameter:
+          # Karena modelling.py Anda tidak menerima parameter, gunakan yang ini:
           mlflow run MLProject
           # Jika modelling.py menerima parameter (misalnya dari MLProject Anda):
           # mlflow run MLProject -P alpha=0.5 -P l1_ratio=0.5
@@ -67,7 +61,7 @@ jobs:
         with:
           name: mlflow-run-artifacts
           # MLflow menyimpan artefak di folder mlruns/ di root proyek MLflow Project.
-          # Sesuaikan path ini jika Anda menyimpan artefak di lokasi lain secara manual.
+          # Path ini relatif terhadap root repositori Workflow-CI/.
           path: |
             mlruns/
           retention-days: 7 # Opsional: Berapa lama artefak disimpan di GitHub
