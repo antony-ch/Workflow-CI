@@ -18,14 +18,34 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: 3.12.7 # MOHON SESUAIKAN: Pastikan ini sama dengan versi Python di MLProject/conda.yaml Anda (sebelumnya saya lihat Anda tulis 3.12.7, tapi di conda.yaml kita pakai 3.9)
+          python-version: 3.12.7 # Sesuai permintaan Anda, menggunakan 3.12.7. Pastikan ini cocok dengan MLProject/conda.yaml!
           activate-environment: mlflow-project-env # Nama env dari conda.yaml
           auto-activate-base: false # Hindari aktivasi base env
           auto-update-conda: true # Pastikan conda up-to-date dan terinisialisasi
-          conda-create-envs-file: MLProject/conda.yaml # <-- BARIS PENTING: Akan membuat/mengupdate env dari conda.yaml
+          # Baris 'conda-create-envs-file' DIHAPUS di sini karena kita akan menggunakan 'conda env update' yang lebih robust di langkah berikutnya.
 
-      # Langkah 'Install dependencies' sebelumnya yang bermasalah telah dihapus.
-      # Semua dependensi sekarang dihandle oleh 'conda-create-envs-file' di atas.
+      - name: Install dependencies from conda.yaml
+        shell: bash -l {0} # Gunakan login shell untuk memastikan conda terinisialisasi
+        run: |
+          conda activate mlflow-project-env
+          conda env update --file MLProject/conda.yaml # <-- BARIS PENTING: Menginstal/mengupdate semua dependensi dari conda.yaml
+          echo "Conda environment updated successfully."
+
+      - name: Verify installed packages (Debugging Step)
+        shell: bash -l {0}
+        run: |
+          conda activate mlflow-project-env
+          echo "--- Conda Packages ---"
+          conda list | grep dagshub || true # Mencari 'dagshub', '|| true' agar tidak error jika tidak ditemukan
+          conda list | grep mlflow || true # Mencari 'mlflow'
+          echo "--- Pip Packages ---"
+          pip list | grep dagshub || true # Mencari 'dagshub'
+          pip list | grep mlflow || true # Mencari 'mlflow'
+          echo "--- All Installed Packages (Conda) ---"
+          conda list
+          echo "--- All Installed Packages (Pip) ---"
+          pip list
+          echo "--- Verification complete ---"
 
       - name: Configure DagsHub credentials
         shell: bash -l {0} # Gunakan login shell
@@ -39,12 +59,12 @@ jobs:
 
           # Menginisialisasi DagsHub secara eksplisit (penting untuk MLflow Project)
           python -c "import dagshub; dagshub.init(repo_owner='antony-ch', repo_name='Eksperimen_SML_AntonyCH', mlflow=True)"
+          echo "DagsHub initialization script executed."
 
       - name: Run MLflow Project
         shell: bash -l {0} # Gunakan login shell
         run: |
           conda activate mlflow-project-env # Aktifkan environment lagi untuk step ini
-          # Pastikan Anda menggunakan perintah yang benar sesuai MLProject Anda.
           # Karena modelling.py Anda tidak menerima parameter, gunakan yang ini:
           mlflow run MLProject
           # Jika modelling.py menerima parameter (misalnya dari MLProject Anda):
@@ -55,18 +75,15 @@ jobs:
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
 
       # --- BAGIAN UNTUK SKILLED (3 pts): Menyimpan Artefak ke Repo GitHub ---
-      # Ini akan mengupload artefak (gambar CM dan ROC) kembali ke repo GitHub ini
       - name: Upload MLflow artifacts to GitHub repo
-        uses: actions/upload-artifact@v4 # Gunakan versi terbaru
+        uses: actions/upload-artifact@v4
         with:
           name: mlflow-run-artifacts
-          # MLflow menyimpan artefak di folder mlruns/ di root proyek MLflow Project.
-          # Path ini relatif terhadap root repositori Workflow-CI/.
           path: |
-            mlruns/
-          retention-days: 7 # Opsional: Berapa lama artefak disimpan di GitHub
+            mlruns/ # MLflow menyimpan artefak di folder mlruns/ di root proyek MLflow Project.
+          retention-days: 7
 
-      # --- OPSIONAL UNTUK ADVANCE (4 pts): Build Docker Image (PERHATIAN KINERJA) ---
+      # --- OPSIONAL UNTUK ADVANCE (4 pts): Build Docker Image (DIKOMENTARI) ---
       # Ini hanya sebagai contoh. Menjalankannya mungkin membutuhkan resources yang besar.
       # Jangan dijalankan jika perangkat lokal Anda tidak mendukung Docker dengan baik.
       # GitHub Actions runners cukup kuat untuk ini, tetapi konfigurasi Docker Hub diperlukan.
@@ -79,8 +96,6 @@ jobs:
       #     echo "${{ secrets.DOCKER_PASSWORD }}" | docker login --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
       #     # Build Docker Image dari MLflow Project dan push ke Docker Hub
       #     mlflow build-docker MLProject --model-path "model" --image-name your-dockerhub-username/my-mlflow-model-image:latest --push
-      #     # Catatan: --model-path "model" akan mencari model yang dilog dengan nama "model"
-      #     # di MLflow Run yang baru saja dibuat.
       #   env:
       #     MLFLOW_TRACKING_URI: https://dagshub.com/antony-ch/Eksperimen_SML_AntonyCH.mlflow
       #     MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
