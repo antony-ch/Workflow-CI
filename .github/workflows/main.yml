@@ -18,11 +18,11 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: 3.12.7 # Sesuai permintaan Anda, menggunakan 3.12.7. Pastikan ini cocok dengan MLProject/conda.yaml!
+          python-version: 3.12.7 # Sesuai permintaan Anda. PASTIKAN INI COCOK DENGAN VERSI PYTHON DI MLProject/conda.yaml!
           activate-environment: mlflow-project-env # Nama env dari conda.yaml
           auto-activate-base: false # Hindari aktivasi base env
           auto-update-conda: true # Pastikan conda up-to-date dan terinisialisasi
-          # Baris 'conda-create-envs-file' DIHAPUS di sini karena kita akan menggunakan 'conda env update' yang lebih robust di langkah berikutnya.
+          # Baris 'conda-create-envs-file' DIHAPUS karena kita menggunakan 'conda env update' yang lebih robust di langkah berikutnya.
 
       - name: Install dependencies from conda.yaml
         shell: bash -l {0} # Gunakan login shell untuk memastikan conda terinisialisasi
@@ -57,9 +57,9 @@ jobs:
           export MLFLOW_TRACKING_URI="https://dagshub.com/antony-ch/Eksperimen_SML_AntonyCH.mlflow"
           echo "MLflow tracking URI set to DagsHub."
 
-          # Menginisialisasi DagsHub secara eksplisit (penting untuk MLflow Project)
-          python -c "import dagshub; dagshub.init(repo_owner='antony-ch', repo_name='Eksperimen_SML_AntonyCH', mlflow=True)"
-          echo "DagsHub initialization script executed."
+          # <<< BARIS INI DIHAPUS: python -c "import dagshub; dagshub.init(...)" >>>
+          echo "DagsHub initialization script (dagshub.init) skipped; relying on environment variables." # Pesan pengganti
+          # Catatan: dagshub library masih harus terinstal agar MLflow bisa berkomunikasi dengan DagsHub.
 
       - name: Run MLflow Project
         shell: bash -l {0} # Gunakan login shell
