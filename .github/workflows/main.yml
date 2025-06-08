@@ -22,7 +22,6 @@ jobs:
           activate-environment: mlflow-project-env # Nama env dari conda.yaml
           auto-activate-base: false # Hindari aktivasi base env
           auto-update-conda: true # Pastikan conda up-to-date dan terinisialisasi
-          # Baris 'conda-create-envs-file' DIHAPUS karena kita menggunakan 'conda env update' yang lebih robust di langkah berikutnya.
 
       - name: Install dependencies from conda.yaml
         shell: bash -l {0} # Gunakan login shell untuk memastikan conda terinisialisasi
@@ -36,39 +35,36 @@ jobs:
         run: |
           conda activate mlflow-project-env
           echo "--- Conda Packages ---"
-          conda list | grep dagshub || true # Mencari 'dagshub', '|| true' agar tidak error jika tidak ditemukan
-          conda list | grep mlflow || true # Mencari 'mlflow'
+          conda list | grep dagshub || true
+          conda list | grep mlflow || true
           echo "--- Pip Packages ---"
-          pip list | grep dagshub || true # Mencari 'dagshub'
-          pip list | grep mlflow || true # Mencari 'mlflow'
+          pip list | grep dagshub || true
+          pip list | grep mlflow || true
           echo "--- All Installed Packages (Conda) ---"
           conda list
           echo "--- All Installed Packages (Pip) ---"
           pip list
           echo "--- Verification complete ---"
 
-      - name: Configure DagsHub credentials
-        shell: bash -l {0} # Gunakan login shell
+      - name: Set DagsHub Environment Variables
+        shell: bash -l {0}
         run: |
-          conda activate mlflow-project-env # Aktifkan environment lagi untuk step ini
-          # Menggunakan secrets untuk username dan token DagsHub
-          export MLFLOW_TRACKING_USERNAME="${{ secrets.DAGSHUB_USERNAME }}"
-          export MLFLOW_TRACKING_PASSWORD="${{ secrets.DAGSHUB_TOKEN }}"
-          export MLFLOW_TRACKING_URI="https://dagshub.com/antony-ch/Eksperimen_SML_AntonyCH.mlflow"
-          echo "MLflow tracking URI set to DagsHub."
-
-          # <<< BARIS INI DIHAPUS: python -c "import dagshub; dagshub.init(...)" >>>
-          echo "DagsHub initialization script (dagshub.init) skipped; relying on environment variables." # Pesan pengganti
-          # Catatan: dagshub library masih harus terinstal agar MLflow bisa berkomunikasi dengan DagsHub.
+          conda activate mlflow-project-env # Aktifkan environment
+          echo "MLFLOW_TRACKING_USERNAME=${{ secrets.DAGSHUB_USERNAME }}" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_PASSWORD=${{ secrets.DAGSHUB_TOKEN }}" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_URI=https://dagshub.com/antony-ch/Eksperimen_SML_AntonyCH.mlflow" >> $GITHUB_ENV
+          echo "DagsHub environment variables set for subsequent steps."
 
       - name: Run MLflow Project
         shell: bash -l {0} # Gunakan login shell
         run: |
-          conda activate mlflow-project-env # Aktifkan environment lagi untuk step ini
+          conda activate mlflow-project-env # Pastikan environment aktif
           # Karena modelling.py Anda tidak menerima parameter, gunakan yang ini:
           mlflow run MLProject
           # Jika modelling.py menerima parameter (misalnya dari MLProject Anda):
           # mlflow run MLProject -P alpha=0.5 -P l1_ratio=0.5
+        # Bagian 'env:' di bawah ini menjadi opsional karena sudah diatur via $GITHUB_ENV di langkah sebelumnya,
+        # tapi tidak ada salahnya juga untuk tetap ada sebagai redundansi langsung untuk perintah mlflow run.
         env:
           MLFLOW_TRACKING_URI: https://dagshub.com/antony-ch/Eksperimen_SML_AntonyCH.mlflow
           MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
