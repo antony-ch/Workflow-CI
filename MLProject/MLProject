@@ -1,0 +1,8 @@
+# Workflow-CI/MLProject/MLProject
+name: Workflow-CI-Model-Training
+
+conda_env: conda.yaml
+
+entry_points:
+  main:
+    command: "python modelling.py" # Perintah untuk menjalankan modelling.py

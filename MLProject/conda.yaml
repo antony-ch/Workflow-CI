@@ -1,0 +1,17 @@
+# Workflow-CI/MLProject/conda.yaml
+name: mlflow-project-env
+channels:
+  - defaults
+  - conda-forge # Tambahkan ini jika ada packages dari conda-forge
+dependencies:
+  - python=3.12.7 # Gunakan versi Python yang Anda gunakan sebelumnya, misal 3.9, 3.10, atau 3.11
+  - pip
+  - pandas
+  - numpy
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - mlflow # Ini harus ada agar MLflow bisa dijalankan
+  - dagshub # Ini juga harus ada untuk koneksi DagsHub
+  - pip:
+    - ipykernel # Berguna jika Anda juga mengembangkan di Jupyter/IPython
