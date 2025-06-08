@@ -2,16 +2,17 @@
 name: mlflow-project-env
 channels:
   - defaults
-  - conda-forge # Tambahkan ini jika ada packages dari conda-forge
+  - conda-forge
 dependencies:
-  - python=3.12.7 # Gunakan versi Python yang Anda gunakan sebelumnya, misal 3.9, 3.10, atau 3.11
+  - python=3.12.7 # PASTIKAN INI SAMA DENGAN VERSI PYTHON DI main.yml
   - pip
   - pandas
   - numpy
   - scikit-learn
   - matplotlib
   - seaborn
-  - mlflow # Ini harus ada agar MLflow bisa dijalankan
-  - dagshub # Ini juga harus ada untuk koneksi DagsHub
+  - mlflow
+  # - dagshub # <<< HAPUS BARIS INI! dagshub akan diinstal via pip di bawah
   - pip:
-    - ipykernel # Berguna jika Anda juga mengembangkan di Jupyter/IPython
+    - ipykernel
+    - dagshub # <<< TAMBAHKAN BARIS INI! Sekarang dagshub akan diinstal via pip
