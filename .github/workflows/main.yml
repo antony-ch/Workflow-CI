@@ -18,21 +18,25 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: 3.12.7 # Pastikan ini sama dengan di conda.yaml
+          python-version: 3.12.7 # Pastikan ini sama dengan di conda.yaml Anda
           activate-environment: mlflow-project-env # Nama env dari conda.yaml
           auto-activate-base: false # Hindari aktivasi base env
+          auto-update-conda: true # Tambahkan ini: Pastikan conda up-to-date dan terinisialisasi
 
       - name: Install dependencies
-        shell: bash
+        # Penting: Gunakan 'shell: bash -l {0}' untuk memastikan login shell,
+        # yang akan menginisialisasi conda dengan benar.
+        shell: bash -l {0}
         run: |
-          conda activate mlflow-project-env
-          pip install -r MLProject/requirements.txt # Jika ada requirements.txt terpisah, gunakan ini
-          # Atau jika semua sudah di conda.yaml:
+          conda activate mlflow-project-env # Aktifkan environment Conda
+          pip install -r MLProject/requirements.txt # Menginstal dependencies dari requirements.txt
+          # Jika semua sudah di conda.yaml dan tidak ada requirements.txt terpisah di MLProject:
           # conda env update --file MLProject/conda.yaml
 
       - name: Configure DagsHub credentials
-        shell: bash
+        shell: bash -l {0} # Gunakan login shell
         run: |
+          conda activate mlflow-project-env # Aktifkan environment lagi untuk step ini
           # Menggunakan secrets untuk username dan token DagsHub
           export MLFLOW_TRACKING_USERNAME="${{ secrets.DAGSHUB_USERNAME }}"
           export MLFLOW_TRACKING_PASSWORD="${{ secrets.DAGSHUB_TOKEN }}"
@@ -43,12 +47,14 @@ jobs:
           python -c "import dagshub; dagshub.init(repo_owner='antony-ch', repo_name='Eksperimen_SML_AntonyCH', mlflow=True)"
 
       - name: Run MLflow Project
-        shell: bash
+        shell: bash -l {0} # Gunakan login shell
         run: |
-          conda activate mlflow-project-env
-          mlflow run MLProject -P alpha=0.5 -P l1_ratio=0.5 # Jika ada parameter
+          conda activate mlflow-project-env # Aktifkan environment lagi untuk step ini
+          # Pastikan Anda menggunakan perintah yang benar sesuai MLProject Anda.
           # Jika modelling.py tidak menerima parameter:
-          # mlflow run MLProject
+          mlflow run MLProject
+          # Jika modelling.py menerima parameter (misalnya dari MLProject Anda):
+          # mlflow run MLProject -P alpha=0.5 -P l1_ratio=0.5
         env:
           MLFLOW_TRACKING_URI: https://dagshub.com/antony-ch/Eksperimen_SML_AntonyCH.mlflow
           MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
@@ -60,23 +66,28 @@ jobs:
         uses: actions/upload-artifact@v4 # Gunakan versi terbaru
         with:
           name: mlflow-run-artifacts
+          # MLflow menyimpan artefak di folder mlruns/ di root proyek MLflow Project.
+          # Sesuaikan path ini jika Anda menyimpan artefak di lokasi lain secara manual.
           path: |
-            mlruns/ # MLflow artifacts disimpan di folder mlruns
-            # Tambahkan path spesifik jika Anda tahu di mana MLflow menyimpan artefak
-            # Misalnya: MLProject/confusion_matrix.png (jika Anda simpan di situ secara manual)
+            mlruns/
           retention-days: 7 # Opsional: Berapa lama artefak disimpan di GitHub
 
       # --- OPSIONAL UNTUK ADVANCE (4 pts): Build Docker Image (PERHATIAN KINERJA) ---
-      # Ini hanya sebagai contoh, JANGAN JALANKAN jika device kentang
+      # Ini hanya sebagai contoh. Menjalankannya mungkin membutuhkan resources yang besar.
+      # Jangan dijalankan jika perangkat lokal Anda tidak mendukung Docker dengan baik.
+      # GitHub Actions runners cukup kuat untuk ini, tetapi konfigurasi Docker Hub diperlukan.
       # - name: Build and Push Docker Image
       #   if: always() # Jalankan ini bahkan jika langkah sebelumnya gagal
-      #   shell: bash
+      #   shell: bash -l {0} # Gunakan login shell
       #   run: |
-      #     mlflow build-docker MLProject --model-path "model" --image-name my-mlflow-model-image:latest --no-push
-      #     # Jika ingin push ke Docker Hub:
-      #     # echo "${{ secrets.DOCKER_PASSWORD }}" | docker login --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
-      #     # mlflow build-docker MLProject --model-path "model" --image-name my-mlflow-model-image:latest --push
-      # env:
-      #   MLFLOW_TRACKING_URI: https://dagshub.com/antony-ch/Eksperimen_SML_AntonyCH.mlflow
-      #   MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
-      #   MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+      #     conda activate mlflow-project-env # Aktifkan environment
+      #     # Login ke Docker Hub
+      #     echo "${{ secrets.DOCKER_PASSWORD }}" | docker login --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
+      #     # Build Docker Image dari MLflow Project dan push ke Docker Hub
+      #     mlflow build-docker MLProject --model-path "model" --image-name your-dockerhub-username/my-mlflow-model-image:latest --push
+      #     # Catatan: --model-path "model" akan mencari model yang dilog dengan nama "model"
+      #     # di MLflow Run yang baru saja dibuat.
+      #   env:
+      #     MLFLOW_TRACKING_URI: https://dagshub.com/antony-ch/Eksperimen_SML_AntonyCH.mlflow
+      #     MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+      #     MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
