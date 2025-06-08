@@ -1,5 +1,3 @@
-# Membangun_model/modelling_tuning.py
-
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -15,26 +13,30 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 import dagshub # Pastikan dagshub diimport
+# Inisialisasi Dagshub. Ini akan mengatur MLFLOW_TRACKING_URI secara otomatis.
+# Dagshub juga akan mencari MLFLOW_TRACKING_USERNAME dan MLFLOW_TRACKING_PASSWORD dari environment.
 dagshub.init(repo_owner='antony-ch',
              repo_name='Eksperimen_SML_AntonyCH',
              mlflow=True)
 
-# BLOK BERMASALAH SEBELUMNYA (import mlflow dan with mlflow.start_run(): ...) TELAH DIHAPUS
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- Konfigurasi MLflow untuk DagsHub ---
-# Baris ini masih dipertahankan untuk memastikan MLflow_TRACKING_URI diatur
-# meskipun dagshub.init() juga melakukan hal serupa. Ini tidak akan menyebabkan konflik.
-os.environ['MLFLOW_TRACKING_URI'] = 'https://dagshub.com/antony-ch/Eksperimen_SML_AntonyCH.mlflow'
-os.environ['MLFLOW_TRACKING_USERNAME'] = 'antony-ch' # Ganti dengan username DagsHub Anda
+# Baris-baris ini sekarang dapat dihapus.
+# - os.environ['MLFLOW_TRACKING_URI'] tidak lagi diperlukan karena dagshub.init() sudah mengaturnya.
+# - os.environ['MLFLOW_TRACKING_USERNAME'] juga tidak perlu di-hardcode di sini
+#   jika Anda sudah mengaturnya melalui environment variable di GitHub Actions.
+#   Jika Anda *tetap* ingin username di-hardcode di script ini, biarkan baris ini.
+#   Namun, praktik terbaik adalah mengelolanya dari environment.
+# os.environ['MLFLOW_TRACKING_URI'] = 'https://dagshub.com/antony-ch/Eksperimen_SML_AntonyCH.mlflow'
+# os.environ['MLFLOW_TRACKING_USERNAME'] = 'antony-ch' 
 # UNTUK KEAMANAN: JANGAN hardcode password/PAT di sini.
 # Atur sebagai variabel lingkungan sebelum menjalankan script, misal:
 # export MLFLOW_TRACKING_PASSWORD='<your_dagshub_pat>' (Linux/macOS)
 # $env:MLFLOW_TRACKING_PASSWORD='<your_dagshub_pat>' (PowerShell Windows)
 # Atau, yang paling disarankan untuk development lokal: `dagshub login` di terminal sebelum menjalankan script.
 
-logging.info("MLflow tracking URI diatur ke DagsHub.")
+logging.info("MLflow tracking URI diatur ke DagsHub (melalui dagshub.init atau env vars).")
 
 def load_data(features_path, target_path):
     """Memuat dataset yang sudah diproses."""
