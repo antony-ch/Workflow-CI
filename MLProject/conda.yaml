@@ -1,10 +1,9 @@
-# Workflow-CI/MLProject/conda.yaml
 name: mlflow-project-env
 channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.12.7 # PASTIKAN INI SAMA DENGAN VERSI PYTHON DI main.yml
+  - python=3.12.7
   - pip
   - pandas
   - numpy
@@ -12,7 +11,5 @@ dependencies:
   - matplotlib
   - seaborn
   - mlflow
-  # - dagshub # <<< HAPUS BARIS INI! dagshub akan diinstal via pip di bawah
   - pip:
     - ipykernel
-    - dagshub # <<< TAMBAHKAN BARIS INI! Sekarang dagshub akan diinstal via pip
