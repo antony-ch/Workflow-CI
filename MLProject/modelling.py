@@ -25,54 +25,56 @@ def load_data(features_path, target_path):
 
 def train_and_evaluate(model, X_train, y_train, X_test, y_test, model_name, params):
     """Melatih dan mengevaluasi model, logging ke MLflow."""
-    mlflow.set_experiment(model_name)
-    with mlflow.start_run(run_name=f"Run_{model_name.replace(' ', '_')}"):
-        logging.info(f"Memulai run MLflow untuk model: {model_name}")
+    # HAPUS BARIS INI: mlflow.set_experiment(model_name)
+    # HAPUS BARIS INI: with mlflow.start_run(run_name=f"Run_{model_name.replace(' ', '_')}"):
+    # Karena sudah dijalankan oleh `mlflow run MLProject`
 
-        mlflow.log_params(params)
-        model.fit(X_train, y_train)
+    logging.info(f"Logging untuk model: {model_name}") # Ubah log message
 
-        y_pred = model.predict(X_test)
-        y_proba = model.predict_proba(X_test)[:, 1]
+    mlflow.log_params(params)
+    model.fit(X_train, y_train)
 
-        accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred)
-        recall = recall_score(y_test, y_pred)
-        f1 = f1_score(y_test, y_pred)
-        roc_auc = roc_auc_score(y_test, y_proba)
-        
-        metrics = {
-            "accuracy": accuracy, "precision": precision, "recall": recall,
-            "f1_score": f1, "roc_auc_score": roc_auc
-        }
-        mlflow.log_metrics(metrics)
+    y_pred = model.predict(X_test)
+    y_proba = model.predict_proba(X_test)[:, 1]
 
-        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
-        npv = tn / (tn + fn) if (tn + fn) != 0 else 0
-        specificity = tn / (tn + fp) if (tn + fp) != 0 else 0
-        mlflow.log_metric("negative_predictive_value", npv)
-        mlflow.log_metric("specificity", specificity)
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+    roc_auc = roc_auc_score(y_test, y_proba)
+    
+    metrics = {
+        "accuracy": accuracy, "precision": precision, "recall": recall,
+        "f1_score": f1, "roc_auc_score": roc_auc
+    }
+    mlflow.log_metrics(metrics)
 
-        cm_path = "confusion_matrix.png"
-        plt.figure(figsize=(6, 5))
-        sns.heatmap(confusion_matrix(y_test, y_pred), annot=True, fmt='d', cmap='Blues')
-        plt.title('Confusion Matrix')
-        plt.savefig(cm_path)
-        mlflow.log_artifact(cm_path, "plots")
-        plt.close()
+    tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+    npv = tn / (tn + fn) if (tn + fn) != 0 else 0
+    specificity = tn / (tn + fp) if (tn + fp) != 0 else 0
+    mlflow.log_metric("negative_predictive_value", npv)
+    mlflow.log_metric("specificity", specificity)
 
-        roc_path = "roc_curve.png"
-        plt.figure(figsize=(6, 5))
-        fpr, tpr, _ = roc_curve(y_test, y_proba)
-        plt.plot(fpr, tpr, label=f'ROC (area = {roc_auc:.2f})')
-        plt.plot([0, 1], [0, 1], 'k--')
-        plt.title('ROC Curve')
-        plt.savefig(roc_path)
-        mlflow.log_artifact(roc_path, "plots")
-        plt.close()
-        
-        mlflow.sklearn.log_model(model, "model")
-        logging.info(f"Model {model_name} logged ke MLflow.")
+    cm_path = "confusion_matrix.png"
+    plt.figure(figsize=(6, 5))
+    sns.heatmap(confusion_matrix(y_test, y_pred), annot=True, fmt='d', cmap='Blues')
+    plt.title('Confusion Matrix')
+    plt.savefig(cm_path)
+    mlflow.log_artifact(cm_path, "plots")
+    plt.close()
+
+    roc_path = "roc_curve.png"
+    plt.figure(figsize=(6, 5))
+    fpr, tpr, _ = roc_curve(y_test, y_proba)
+    plt.plot(fpr, tpr, label=f'ROC (area = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.title('ROC Curve')
+    plt.savefig(roc_path)
+    mlflow.log_artifact(roc_path, "plots")
+    plt.close()
+    
+    mlflow.sklearn.log_model(model, "model")
+    logging.info(f"Model {model_name} logged ke MLflow.")
 
 if __name__ == "__main__":
     logging.info("Memulai script modelling.py...")
