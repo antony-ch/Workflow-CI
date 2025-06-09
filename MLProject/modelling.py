@@ -25,13 +25,20 @@ def load_data(features_path, target_path):
 
 def train_and_evaluate(model, X_train, y_train, X_test, y_test, model_name, params):
     """Melatih dan mengevaluasi model, logging ke MLflow."""
-    # HAPUS BARIS INI: mlflow.set_experiment(model_name)
-    # HAPUS BARIS INI: with mlflow.start_run(run_name=f"Run_{model_name.replace(' ', '_')}"):
-    # Karena sudah dijalankan oleh `mlflow run MLProject`
+    logging.info(f"Logging untuk model: {model_name}")
 
-    logging.info(f"Logging untuk model: {model_name}") # Ubah log message
+    # --- BAGIAN YANG DIREVISI/DITAMBAHKAN DI SINI ---
+    # Tambahkan logging untuk melihat parameter sebelum di-log
+    logging.info(f"Attempting to log parameters for {model_name}: {params}")
 
-    mlflow.log_params(params)
+    # Pastikan semua nilai parameter diubah ke string
+    # Ini seringkali menyelesaikan masalah INVALID_PARAMETER_VALUE jika ada tipe data yang tidak standar
+    cleaned_params = {k: str(v) for k, v in params.items()}
+    
+    mlflow.log_params(cleaned_params) # Log parameter yang sudah 'dibersihkan'
+    logging.info(f"Parameters successfully logged for {model_name}.")
+    # --- AKHIR BAGIAN YANG DIREVISI/DITAMBAHKAN ---
+
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
