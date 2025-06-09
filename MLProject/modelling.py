@@ -28,15 +28,19 @@ def train_and_evaluate(model, X_train, y_train, X_test, y_test, model_name, para
     logging.info(f"Logging untuk model: {model_name}")
 
     # --- BAGIAN YANG DIREVISI/DITAMBAHKAN DI SINI ---
-    # Tambahkan logging untuk melihat parameter sebelum di-log
-    logging.info(f"Attempting to log parameters for {model_name}: {params}")
+    logging.info(f"Attempting to log parameters individually for {model_name}: {params}")
 
-    # Pastikan semua nilai parameter diubah ke string
-    # Ini seringkali menyelesaikan masalah INVALID_PARAMETER_VALUE jika ada tipe data yang tidak standar
-    cleaned_params = {k: str(v) for k, v in params.items()}
-    
-    mlflow.log_params(cleaned_params) # Log parameter yang sudah 'dibersihkan'
-    logging.info(f"Parameters successfully logged for {model_name}.")
+    # Loop melalui parameter dan log satu per satu
+    for k, v in params.items():
+        try:
+            # Pastikan kunci dan nilai diubah ke string
+            mlflow.log_param(str(k), str(v))
+            logging.info(f"Successfully logged param '{k}': '{v}' for {model_name}")
+        except Exception as e:
+            logging.error(f"Error logging single parameter '{k}': '{v}' for {model_name}. Error: {e}")
+            raise # Re-raise the exception to ensure the workflow fails if any parameter fails to log
+
+    logging.info(f"All parameters successfully logged individually for {model_name}.")
     # --- AKHIR BAGIAN YANG DIREVISI/DITAMBAHKAN ---
 
     model.fit(X_train, y_train)
