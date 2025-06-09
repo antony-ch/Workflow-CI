@@ -10,6 +10,7 @@ import os
 import logging
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -24,24 +25,17 @@ def load_data(features_path, target_path):
     return X, y
 
 def train_and_evaluate(model, X_train, y_train, X_test, y_test, model_name, params):
-    """Melatih dan mengevaluasi model, logging ke MLflow."""
-    logging.info(f"Logging untuk model: {model_name}")
+    """Melatih dan mengevaluasi model, logging ke MLflow dalam nested run."""
+    logging.info(f"Logging untuk model: {model_name}.")
+    logging.info(f"Attempting to log parameters for {model_name}: {params}")
 
-    # --- BAGIAN YANG DIREVISI/DITAMBAHKAN DI SINI ---
-    logging.info(f"Attempting to log parameters individually for {model_name}: {params}")
-
-    # Loop melalui parameter dan log satu per satu
-    for k, v in params.items():
-        try:
-            # Pastikan kunci dan nilai diubah ke string
-            mlflow.log_param(str(k), str(v))
-            logging.info(f"Successfully logged param '{k}': '{v}' for {model_name}")
-        except Exception as e:
-            logging.error(f"Error logging single parameter '{k}': '{v}' for {model_name}. Error: {e}")
-            raise # Re-raise the exception to ensure the workflow fails if any parameter fails to log
-
-    logging.info(f"All parameters successfully logged individually for {model_name}.")
-    # --- AKHIR BAGIAN YANG DIREVISI/DITAMBAHKAN ---
+    # --- THIS IS THE CRUCIAL CHANGE ---
+    # Log all parameters at once. MLflow handles this efficiently.
+    # The keys in 'params' dictionary must be unique for this single call.
+    # Since each model now has its own nested run, this is safe.
+    mlflow.log_params({str(k): str(v) for k, v in params.items()})
+    logging.info(f"Parameters successfully logged for {model_name}.")
+    # --- END OF CRUCIAL CHANGE ---
 
     model.fit(X_train, y_train)
 
@@ -53,7 +47,7 @@ def train_and_evaluate(model, X_train, y_train, X_test, y_test, model_name, para
     recall = recall_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred)
     roc_auc = roc_auc_score(y_test, y_proba)
-    
+
     metrics = {
         "accuracy": accuracy, "precision": precision, "recall": recall,
         "f1_score": f1, "roc_auc_score": roc_auc
@@ -83,7 +77,7 @@ def train_and_evaluate(model, X_train, y_train, X_test, y_test, model_name, para
     plt.savefig(roc_path)
     mlflow.log_artifact(roc_path, "plots")
     plt.close()
-    
+
     mlflow.sklearn.log_model(model, "model")
     logging.info(f"Model {model_name} logged ke MLflow.")
 
@@ -92,29 +86,35 @@ if __name__ == "__main__":
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     data_folder = os.path.join(current_dir, 'namadataset_preprocessing')
-    
+
     features_file = os.path.join(data_folder, 'telco_customer_churn_features_preprocessed.csv')
     target_file = os.path.join(data_folder, 'telco_customer_churn_target_preprocessed.csv')
 
     X, y = load_data(features_file, target_file)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
-    # Logistic Regression
-    lr_param_grid = {'C': [0.1, 1.0, 10.0], 'solver': ['liblinear'], 'penalty': ['l1', 'l2']}
-    lr_grid_search = GridSearchCV(LogisticRegression(max_iter=2000, random_state=42), lr_param_grid, cv=3, scoring='f1', n_jobs=-1, verbose=1)
-    lr_grid_search.fit(X_train, y_train)
-    train_and_evaluate(lr_grid_search.best_estimator_, X_train, y_train, X_test, y_test, "Optimized Logistic Regression", lr_grid_search.best_params_)
+    # --- Logistic Regression ---
+    with mlflow.start_run(run_name="Logistic_Regression_Optimization", nested=True):
+        logging.info("Melatih dan mengevaluasi Optimized Logistic Regression...")
+        lr_param_grid = {'C': [0.1, 1.0, 10.0], 'solver': ['liblinear'], 'penalty': ['l1', 'l2']}
+        lr_grid_search = GridSearchCV(LogisticRegression(max_iter=2000, random_state=42), lr_param_grid, cv=3, scoring='f1', n_jobs=-1, verbose=1)
+        lr_grid_search.fit(X_train, y_train)
+        train_and_evaluate(lr_grid_search.best_estimator_, X_train, y_train, X_test, y_test, "Optimized Logistic Regression", lr_grid_search.best_params_)
 
-    # Decision Tree
-    dt_param_grid = {'max_depth': [5, 10, 15], 'min_samples_split': [2, 5, 10], 'min_samples_leaf': [1, 2, 4]}
-    dt_grid_search = GridSearchCV(DecisionTreeClassifier(random_state=42), dt_param_grid, cv=3, scoring='f1', n_jobs=-1, verbose=1)
-    dt_grid_search.fit(X_train, y_train)
-    train_and_evaluate(dt_grid_search.best_estimator_, X_train, y_train, X_test, y_test, "Optimized Decision Tree", dt_grid_search.best_params_)
+    # --- Decision Tree ---
+    with mlflow.start_run(run_name="Decision_Tree_Optimization", nested=True):
+        logging.info("Melatih dan mengevaluasi Optimized Decision Tree...")
+        dt_param_grid = {'max_depth': [5, 10, 15], 'min_samples_split': [2, 5, 10], 'min_samples_leaf': [1, 2, 4]}
+        dt_grid_search = GridSearchCV(DecisionTreeClassifier(random_state=42), dt_param_grid, cv=3, scoring='f1', n_jobs=-1, verbose=1)
+        dt_grid_search.fit(X_train, y_train)
+        train_and_evaluate(dt_grid_search.best_estimator_, X_train, y_train, X_test, y_test, "Optimized Decision Tree", dt_grid_search.best_params_)
 
-    # Random Forest
-    rf_param_grid = {'n_estimators': [100, 200], 'max_depth': [10, 20], 'min_samples_split': [5, 10]}
-    rf_grid_search = GridSearchCV(RandomForestClassifier(random_state=42), rf_param_grid, cv=3, scoring='f1', n_jobs=-1, verbose=1)
-    rf_grid_search.fit(X_train, y_train)
-    train_and_evaluate(rf_grid_search.best_estimator_, X_train, y_train, X_test, y_test, "Optimized Random Forest", rf_grid_search.best_params_)
+    # --- Random Forest ---
+    with mlflow.start_run(run_name="Random_Forest_Optimization", nested=True):
+        logging.info("Melatih dan mengevaluasi Optimized Random Forest...")
+        rf_param_grid = {'n_estimators': [100, 200], 'max_depth': [10, 20], 'min_samples_split': [5, 10]}
+        rf_grid_search = GridSearchCV(RandomForestClassifier(random_state=42), rf_param_grid, cv=3, scoring='f1', n_jobs=-1, verbose=1)
+        rf_grid_search.fit(X_train, y_train)
+        train_and_evaluate(rf_grid_search.best_estimator_, X_train, y_train, X_test, y_test, "Optimized Random Forest", rf_grid_search.best_params_)
 
     logging.info("Proses selesai.")
