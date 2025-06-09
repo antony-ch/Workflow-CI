@@ -3,13 +3,15 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.12.7
+  - python=3.12.7 # Pastikan ini versi yang sama dengan saat Anda melatih model
   - pip
   - pandas
-  - numpy
-  - scikit-learn
+  - numpy=2.2.5  # Revisi versi ini
+  - scikit-learn=1.6.1 # Revisi versi ini
   - matplotlib
   - seaborn
-  - mlflow
+  - mlflow=2.18.0 # Revisi versi ini
+  - cloudpickle=3.0.0 # Tambahkan atau revisi versi ini
+  - psutil=7.0.0 # Tambahkan atau revisi versi ini karena sebelumnya uninstalled
   - pip:
     - ipykernel
